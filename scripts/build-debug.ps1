@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 $ProjectRoot = Resolve-Path "$PSScriptRoot\.."
 Set-Location $ProjectRoot
 
@@ -38,7 +38,7 @@ function Run-Logged([string]$exe, [string[]]$arguments, [int]$TimeoutSec = 0, [s
             Log "TIMEOUT nach $TimeoutSec Sekunden: $exe $argLine"
             if (Test-Path $outFile) { Get-Content $outFile -Raw | Add-Content -Encoding UTF8 -Path $LogFile }
             if (Test-Path $errFile) { Get-Content $errFile -Raw | Add-Content -Encoding UTF8 -Path $LogFile }
-            throw "Build hing länger als $TimeoutSec Sekunden. Details in $LogFile"
+            throw "Build hing lÃ¤nger als $TimeoutSec Sekunden. Details in $LogFile"
         }
     }
     $process.WaitForExit()
@@ -140,14 +140,19 @@ Log "ANDROID_HOME=$env:ANDROID_HOME"
 $sdkManager = Install-CmdlineTools $androidHome
 Log "sdkmanager=$sdkManager"
 
-$licenseInput = (("y" + [Environment]::NewLine) * 160)
-$licenseInput | & $sdkManager --sdk_root=$androidHome --licenses 2>&1 | Tee-Object -FilePath $LogFile -Append | Out-Host
+$licenseFile = Join-Path $LogsDir "android-license-yes.txt"
+(("y" + [Environment]::NewLine) * 200) | Set-Content -Encoding ASCII $licenseFile
+
+Log "Android SDK Lizenzen akzeptieren"
+$licenseCmd = '"' + $sdkManager + '" --sdk_root="' + $androidHome + '" --licenses < "' + $licenseFile + '" >> "' + $LogFile + '" 2>&1'
+cmd.exe /d /c $licenseCmd
 if ($LASTEXITCODE -ne 0) { Log "Warnung: sdkmanager --licenses exit=$LASTEXITCODE; Build wird trotzdem versucht." }
 
 $packages = @("platform-tools", "platforms;android-35", "build-tools;35.0.0", "cmdline-tools;latest")
 foreach ($pkg in $packages) {
     Log "SDK Package sicherstellen: $pkg"
-    & $sdkManager --sdk_root=$androidHome $pkg 2>&1 | Tee-Object -FilePath $LogFile -Append | Out-Host
+    $pkgCmd = '"' + $sdkManager + '" --sdk_root="' + $androidHome + '" "' + $pkg + '" >> "' + $LogFile + '" 2>&1'
+    cmd.exe /d /c $pkgCmd
     if ($LASTEXITCODE -ne 0) { throw "sdkmanager konnte Paket $pkg nicht installieren. Details in $LogFile" }
 }
 
@@ -160,7 +165,7 @@ $gradleProps = "$gradlePropsDir\gradle.properties"
 New-Item -ItemType Directory -Force $gradlePropsDir | Out-Null
 $propsText = if (Test-Path $gradleProps) { Get-Content $gradleProps -Raw } else { "" }
 if ($propsText -notmatch "gpr\.user" -or $propsText -notmatch "gpr\.key") {
-    Write-Host "karoo-ext liegt in GitHub Packages. Dafür braucht Gradle einmalig einen GitHub Personal Access Token classic mit read:packages."
+    Write-Host "karoo-ext liegt in GitHub Packages. DafÃ¼r braucht Gradle einmalig einen GitHub Personal Access Token classic mit read:packages."
     $user = Read-Host "GitHub Username"
     $token = Read-Host "GitHub Token mit read:packages"
     @"
@@ -168,7 +173,7 @@ if ($propsText -notmatch "gpr\.user" -or $propsText -notmatch "gpr\.key") {
 gpr.user=$user
 gpr.key=$token
 "@ | Add-Content -Encoding ASCII $gradleProps
-    Log "Gradle GitHub-Package-Credentials in $gradleProps ergänzt."
+    Log "Gradle GitHub-Package-Credentials in $gradleProps ergÃ¤nzt."
 } else { Log "Gradle GitHub-Package-Credentials vorhanden." }
 
 function Get-GradleExe {
@@ -203,3 +208,4 @@ Log "APK kopiert: $dest"
 Write-Host ""
 Write-Host "FERTIG: $dest"
 Write-Host "Build-Log: $LogFile"
+

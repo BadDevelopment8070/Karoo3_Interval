@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Smart FTP Field</string>
+    <string name="field_name">Smart FTP Workout</string>
+    <string name="field_description">FTP-gebundene Intervalltrainings mit leistungsabhängigem Work-Countdown</string>
+    <string name="action_reset">Smart FTP: Reset</string>
+    <string name="action_next_segment">Smart FTP: Nächstes Segment</string>
+</resources>

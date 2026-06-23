@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ExtensionInfo
+    id="smart_ftp"
+    displayName="@string/app_name"
+    icon="@drawable/ic_smart_ftp"
+    scansDevices="false"
+    mapLayer="false"
+    fitFile="false">
+
+    <DataType
+        typeId="smart_ftp_field"
+        description="@string/field_description"
+        displayName="@string/field_name"
+        graphical="true"
+        icon="@drawable/ic_smart_ftp" />
+
+    <BonusAction
+        actionId="reset_workout"
+        displayName="@string/action_reset" />
+
+    <BonusAction
+        actionId="next_segment"
+        displayName="@string/action_next_segment" />
+</ExtensionInfo>

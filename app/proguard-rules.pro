@@ -1,0 +1,2 @@
+-keep class com.bastiankahuna.karoosmartftp.** { *; }
+-keep class io.hammerhead.karooext.** { *; }

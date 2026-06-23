@@ -1,0 +1,23 @@
+# Gradle / Android
+.gradle/
+**/build/
+local.properties
+*.iml
+.cxx/
+.externalNativeBuild/
+
+# Output artifacts
+dist/
+logs/
+*.apk
+*.aab
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Secrets
+*.keystore
+*.jks
+*.properties.bak

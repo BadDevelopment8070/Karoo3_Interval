@@ -1,0 +1,9 @@
+Karoo Smart FTP Field v1.1.3
+
+Changes:
+- Added cockpit telemetry row: current speed, current heart rate, and local clock time.
+- Added Karoo stream consumers for DataType.Type.SPEED and DataType.Type.HEART_RATE.
+- Replaced fragile DataPoint.singleValue access with explicit DataPoint.values extraction.
+- Fixed Gradle build logging to avoid stdout/stderr pipe deadlocks.
+- Added 45 minute Gradle timeout and GitHub-ready .gitignore.
+- APK output renamed to smart-ftp-field-v1.1.3-debug.apk.

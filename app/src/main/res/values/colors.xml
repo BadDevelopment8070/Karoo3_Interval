@@ -1,0 +1,6 @@
+<resources>
+    <color name="alert_work_bg">#001E2A</color>
+    <color name="alert_rest_bg">#2A1800</color>
+    <color name="alert_hold_bg">#2A0000</color>
+    <color name="alert_text">#E8FFFF</color>
+</resources>

@@ -140,7 +140,7 @@ Log "ANDROID_HOME=$env:ANDROID_HOME"
 $sdkManager = Install-CmdlineTools $androidHome
 Log "sdkmanager=$sdkManager"
 
-$licenseFile = Join-Path $LogsDir "android-license-yes.txt"
+$licenseFile = Join-Path (Split-Path -Parent $LogFile) "android-license-yes.txt"
 (("y" + [Environment]::NewLine) * 200) | Set-Content -Encoding ASCII $licenseFile
 
 Log "Android SDK Lizenzen akzeptieren"
@@ -208,4 +208,5 @@ Log "APK kopiert: $dest"
 Write-Host ""
 Write-Host "FERTIG: $dest"
 Write-Host "Build-Log: $LogFile"
+
 

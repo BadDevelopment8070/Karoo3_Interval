@@ -16,6 +16,17 @@ import kotlin.math.max
 import kotlin.math.min
 
 object FieldRenderer {
+    private val COLOR_BORDER = Color.rgb(0, 229, 255)
+    private val COLOR_LABEL = Color.rgb(127, 251, 255)
+    private val COLOR_VALUE = Color.rgb(255, 176, 0)
+    private val COLOR_TEXT = Color.rgb(0, 229, 255)
+    private val COLOR_OK = Color.rgb(0, 229, 0)
+    private val COLOR_HIGH = Color.rgb(255, 48, 48)
+    private val COLOR_LOW = Color.rgb(0, 100, 255)
+    private val BG_COLOR = Color.rgb(5, 7, 11)
+    private val PADDING = 6f
+    private val BORDER_WIDTH = 2f
+
     fun render(
         context: Context,
         widthPx: Int,
@@ -31,6 +42,7 @@ object FieldRenderer {
         return rv
     }
 
+
     private fun createDisplayBitmap(
         widthPx: Int,
         heightPx: Int,
@@ -42,207 +54,255 @@ object FieldRenderer {
         val bmp = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        canvas.drawColor(BG_COLOR)
 
-        // Background
-        canvas.drawColor(Color.rgb(5, 7, 11))
+        val gap = 8f
+        val topH = heightPx * 0.15f
+        val midH = heightPx * 0.6f
+        val botH = heightPx * 0.25f
 
-        // Layout: 8 Felder (2 oben, 4 in der Mitte, 2 unten)
-        // Oben: HR | SPEED
-        // Mitte: POWER(center+ring) | FLOATER
-        // Unten: PHASE | CAD
+        // Top row
+        drawFieldSimple(canvas, paint, PADDING, PADDING, (widthPx - PADDING * 2) / 2 - gap / 2, topH - PADDING * 2, 
+            "HR", "${heartRateBpm?.toString() ?: "---"}", "bpm")
+        drawFieldSimple(canvas, paint, PADDING + (widthPx - PADDING * 2) / 2 + gap / 2, PADDING, (widthPx - PADDING * 2) / 2 - gap / 2, topH - PADDING * 2,
+            "SPD", "${Formatters.speedKmh(speedMetersPerSecond)}", "km/h")
 
-        val padding = 4f
-        val topHeight = heightPx * 0.15f
-        val middleHeight = heightPx * 0.60f
-        val bottomHeight = heightPx * 0.25f
+        // Middle Power Ring
+        drawPowerRing(canvas, paint, PADDING, topH + PADDING, widthPx - PADDING * 2, midH - PADDING * 2, snapshot)
 
-        // Top row (HR, SPEED)
-        drawFieldBox(canvas, paint, 0f, 0f, (widthPx / 2).toFloat(), topHeight, "HR", "${heartRateBpm?.toString() ?: "---"}", isHighlight = false)
-        drawFieldBox(canvas, paint, (widthPx / 2).toFloat(), 0f, widthPx.toFloat(), topHeight, "SPEED", "${Formatters.speedKmh(speedMetersPerSecond)} km/h", isHighlight = false)
-
-        // Middle section - Power and Floater
-        val powerWidth = (widthPx * 0.6f)
-        val floaterWidth = (widthPx * 0.4f)
-        
-        drawPowerField(canvas, paint, 0f, topHeight, powerWidth, middleHeight, snapshot)
-        drawFloaterField(canvas, paint, powerWidth, topHeight, widthPx.toFloat(), middleHeight, snapshot)
-
-        // Bottom row (Phase, Cadence)
-        drawFieldBox(canvas, paint, 0f, topHeight + middleHeight, (widthPx / 2).toFloat(), bottomHeight, "PHASE", phaseText(snapshot), isHighlight = false)
-        drawFieldBox(canvas, paint, (widthPx / 2).toFloat(), topHeight + middleHeight, widthPx.toFloat(), bottomHeight, "CADENCE", "${snapshot.currentCadence?.toString() ?: "---"}", isHighlight = false)
+        // Bottom row
+        val botY = topH + midH + PADDING
+        drawPhaseField(canvas, paint, PADDING, botY, (widthPx - PADDING * 2) / 2 - gap / 2, botH - PADDING * 2, snapshot)
+        drawCadenceField(canvas, paint, PADDING + (widthPx - PADDING * 2) / 2 + gap / 2, botY, (widthPx - PADDING * 2) / 2 - gap / 2, botH - PADDING * 2, snapshot)
 
         return bmp
     }
 
-    private fun drawFieldBox(
+    private fun drawFieldSimple(
         canvas: Canvas,
         paint: Paint,
         x: Float,
         y: Float,
-        width: Float,
-        height: Float,
+        w: Float,
+        h: Float,
         label: String,
         value: String,
-        isHighlight: Boolean
+        unit: String
     ) {
-        val borderColor = Color.rgb(0, 229, 255)
-        val textColor = Color.rgb(232, 255, 255)
-
         // Border
         paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 2f
-        paint.color = borderColor
-        canvas.drawRect(x + 2, y + 2, x + width - 2, y + height - 2, paint)
+        paint.strokeWidth = BORDER_WIDTH
+        paint.color = COLOR_BORDER
+        canvas.drawRect(x, y, x + w, y + h, paint)
 
         // Label
         paint.style = Paint.Style.FILL
-        paint.textSize = height * 0.25f
-        paint.color = Color.rgb(127, 251, 255)
+        paint.textSize = h * 0.22f
         paint.textAlign = Paint.Align.CENTER
-        canvas.drawText(label, x + width / 2, y + height * 0.35f, paint)
+        paint.color = COLOR_LABEL
+        canvas.drawText(label, x + w / 2, y + h * 0.28f, paint)
 
         // Value
-        paint.textSize = height * 0.45f
-        paint.color = textColor
-        paint.textAlign = Paint.Align.CENTER
-        canvas.drawText(value, x + width / 2, y + height * 0.75f, paint)
+        paint.textSize = h * 0.55f
+        paint.color = COLOR_VALUE
+        canvas.drawText(value, x + w / 2, y + h * 0.70f, paint)
+
+        // Unit
+        paint.textSize = h * 0.20f
+        paint.color = COLOR_LABEL
+        canvas.drawText(unit, x + w / 2, y + h * 0.88f, paint)
     }
 
-    private fun drawPowerField(
+    private fun drawPowerRing(
         canvas: Canvas,
         paint: Paint,
         x: Float,
         y: Float,
-        width: Float,
-        height: Float,
+        w: Float,
+        h: Float,
         snapshot: RuntimeSnapshot
     ) {
-        val borderColor = Color.rgb(0, 229, 255)
-
         // Border
         paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 2f
-        paint.color = borderColor
-        canvas.drawRect(x + 2, y + 2, x + width - 2, y + height - 2, paint)
+        paint.strokeWidth = BORDER_WIDTH
+        paint.color = COLOR_BORDER
+        canvas.drawRect(x, y, x + w, y + h, paint)
 
-        val centerX = x + width / 2
-        val centerY = y + height / 2
-        val ringRadius = min(width, height) * 0.35f
+        val centerX = x + w / 2
+        val centerY = y + h / 2
+        val ringRadius = min(w, h) * 0.32f
 
-        // Draw ring timer (progress around circle)
-        val segmentProgress = snapshot.segmentProgressPermille / 1000f
+        // Ring background (grid pattern)
         paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 8f
-        paint.color = Color.rgb(255, 176, 0)
-        val ringArc = RectF(centerX - ringRadius, centerY - ringRadius, centerX + ringRadius, centerY + ringRadius)
-        canvas.drawArc(ringArc, -90f, segmentProgress * 360f, false, paint)
-
-        // Ring border
-        paint.color = Color.rgb(127, 251, 255)
-        paint.strokeWidth = 2f
-        canvas.drawCircle(centerX, centerY, ringRadius, paint)
-
-        // Draw indicator (triangle or dash based on power difference)
-        val current = snapshot.currentPower ?: 0
-        val target = snapshot.targetWatts
-        val diff = current - target
-
-        val indicatorColor = when {
-            diff > 50 -> Color.rgb(255, 48, 48) // Red triangle up
-            diff < -50 -> Color.rgb(0, 100, 255) // Blue triangle down
-            else -> Color.rgb(0, 229, 0) // Green dash
+        paint.strokeWidth = 1.5f
+        paint.color = Color.argb(50, 0, 229, 255)
+        for (i in 0..3) {
+            val angle = (i * 90) - 90f
+            val rad = Math.toRadians(angle.toDouble())
+            val ex = centerX + ringRadius * kotlin.math.cos(rad).toFloat()
+            val ey = centerY + ringRadius * kotlin.math.sin(rad).toFloat()
+            canvas.drawLine(centerX, centerY, ex, ey, paint)
         }
 
-        paint.style = Paint.Style.FILL
-        paint.color = indicatorColor
+        // Ring progress
+        val progress = snapshot.segmentProgressPermille / 1000f
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 10f
+        paint.color = COLOR_VALUE
+        val arc = RectF(centerX - ringRadius, centerY - ringRadius, centerX + ringRadius, centerY + ringRadius)
+        canvas.drawArc(arc, -90f, progress * 360f, false, paint)
 
+        // Ring border
+        paint.strokeWidth = 2f
+        paint.color = COLOR_BORDER
+        canvas.drawCircle(centerX, centerY, ringRadius, paint)
+
+        // Timer top center
+        paint.style = Paint.Style.FILL
+        paint.textSize = ringRadius * 0.45f
+        paint.textAlign = Paint.Align.CENTER
+        paint.color = COLOR_TEXT
+        val timeStr = Formatters.mmss(snapshot.remainingMs)
+        canvas.drawText(timeStr, centerX, centerY - ringRadius - 5f, paint)
+
+        // Target power center
+        paint.textSize = ringRadius * 1.0f
+        paint.color = COLOR_VALUE
+        canvas.drawText("${snapshot.targetWatts}W", centerX, centerY + 10f, paint)
+
+        // Target label
+        paint.textSize = ringRadius * 0.35f
+        paint.color = COLOR_LABEL
+        canvas.drawText("TARGET POWER", centerX, centerY + ringRadius + 25f, paint)
+
+        // Power indicator (right side)
+        val current = snapshot.currentPower ?: 0
+        val diff = current - snapshot.targetWatts
+        val indicatorX = x + w - 30f
+        val indicatorY = centerY
+
+        paint.style = Paint.Style.FILL
         when {
-            diff > 50 -> drawTriangleUp(canvas, paint, centerX, centerY - ringRadius - 15f, 20f)
-            diff < -50 -> drawTriangleDown(canvas, paint, centerX, centerY + ringRadius + 15f, 20f)
+            diff > 50 -> drawTriangleUp(canvas, paint, indicatorX, indicatorY - 15f, COLOR_HIGH)
+            diff < -50 -> drawTriangleDown(canvas, paint, indicatorX, indicatorY + 15f, COLOR_LOW)
             else -> {
+                paint.strokeWidth = 5f
                 paint.style = Paint.Style.STROKE
-                paint.strokeWidth = 4f
-                canvas.drawLine(centerX - 15f, centerY + ringRadius + 15f, centerX + 15f, centerY + ringRadius + 15f, paint)
+                paint.color = COLOR_OK
+                canvas.drawLine(indicatorX - 12f, indicatorY, indicatorX + 12f, indicatorY, paint)
             }
         }
 
-        // Target watts in center
-        paint.style = Paint.Style.FILL
-        paint.textSize = height * 0.25f
-        paint.color = Color.rgb(255, 176, 0)
-        paint.textAlign = Paint.Align.CENTER
-        canvas.drawText("${snapshot.targetWatts}W", centerX, centerY + 8f, paint)
-
-        // Current watts below
-        paint.textSize = height * 0.20f
-        paint.color = Color.rgb(0, 229, 255)
-        canvas.drawText("Now: ${current}W", centerX, centerY + 35f, paint)
+        // Box around indicator
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = BORDER_WIDTH
+        paint.color = COLOR_BORDER
+        canvas.drawRect(indicatorX - 20f, indicatorY - 30f, indicatorX + 20f, indicatorY + 30f, paint)
     }
 
-    private fun drawTriangleUp(canvas: Canvas, paint: Paint, centerX: Float, centerY: Float, size: Float) {
+    private fun drawTriangleUp(canvas: Canvas, paint: Paint, x: Float, y: Float, color: Int) {
+        paint.color = color
         val path = android.graphics.Path()
-        path.moveTo(centerX, centerY - size)
-        path.lineTo(centerX - size, centerY + size)
-        path.lineTo(centerX + size, centerY + size)
+        path.moveTo(x, y - 15f)
+        path.lineTo(x - 15f, y + 15f)
+        path.lineTo(x + 15f, y + 15f)
         path.close()
         canvas.drawPath(path, paint)
     }
 
-    private fun drawTriangleDown(canvas: Canvas, paint: Paint, centerX: Float, centerY: Float, size: Float) {
+    private fun drawTriangleDown(canvas: Canvas, paint: Paint, x: Float, y: Float, color: Int) {
+        paint.color = color
         val path = android.graphics.Path()
-        path.moveTo(centerX, centerY + size)
-        path.lineTo(centerX - size, centerY - size)
-        path.lineTo(centerX + size, centerY - size)
+        path.moveTo(x, y + 15f)
+        path.lineTo(x - 15f, y - 15f)
+        path.lineTo(x + 15f, y - 15f)
         path.close()
         canvas.drawPath(path, paint)
     }
 
-    private fun drawFloaterField(
+    private fun drawPhaseField(
         canvas: Canvas,
         paint: Paint,
         x: Float,
         y: Float,
-        width: Float,
-        height: Float,
+        w: Float,
+        h: Float,
         snapshot: RuntimeSnapshot
     ) {
-        val borderColor = Color.rgb(0, 229, 255)
-
         // Border
         paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 2f
-        paint.color = borderColor
-        canvas.drawRect(x + 2, y + 2, x + width - 2, y + height - 2, paint)
+        paint.strokeWidth = BORDER_WIDTH
+        paint.color = COLOR_BORDER
+        canvas.drawRect(x, y, x + w, y + h, paint)
 
-        val centerX = x + width / 2
-        val centerY = y + height / 2
-
-        // Floater info
-        paint.style = Paint.Style.FILL
-        paint.textSize = height * 0.25f
-        paint.color = Color.rgb(127, 251, 255)
-        paint.textAlign = Paint.Align.CENTER
-        canvas.drawText("FLOATER", centerX, centerY - height * 0.15f, paint)
-
-        paint.textSize = height * 0.30f
-        paint.color = Color.rgb(232, 255, 255)
-        canvas.drawText("Min: ${snapshot.minimumWatts}W", centerX, centerY + height * 0.10f, paint)
-
-        paint.textSize = height * 0.25f
-        paint.color = Color.rgb(0, 229, 255)
-        canvas.drawText("FTP: ${snapshot.ftp}", centerX, centerY + height * 0.35f, paint)
-
-        paint.textSize = height * 0.20f
-        paint.color = Color.rgb(200, 200, 200)
-        canvas.drawText("Seg ${snapshot.segmentIndex + 1}/${snapshot.workout.segments.size}", centerX, centerY + height * 0.55f, paint)
-    }
-
-    private fun phaseText(snapshot: RuntimeSnapshot): String {
-        return when (snapshot.segment.type) {
+        val phase = when (snapshot.segment.type) {
             SegmentType.WARMUP -> "WARMUP"
-            SegmentType.WORK -> if (snapshot.countdownActive) "WORK" else "HOLD"
+            SegmentType.WORK -> "WORK"
             SegmentType.RECOVERY -> "RECOVERY"
             SegmentType.COOLDOWN -> "COOLDOWN"
         }
+
+        // Label
+        paint.style = Paint.Style.FILL
+        paint.textSize = h * 0.20f
+        paint.textAlign = Paint.Align.CENTER
+        paint.color = COLOR_LABEL
+        canvas.drawText("PHASE", x + w / 2, y + h * 0.25f, paint)
+
+        // Phase name
+        paint.textSize = h * 0.50f
+        paint.color = COLOR_VALUE
+        canvas.drawText(phase, x + w / 2, y + h * 0.65f, paint)
+
+        // Segment info
+        paint.textSize = h * 0.22f
+        paint.color = COLOR_LABEL
+        val segInfo = "${snapshot.segmentIndex + 1} / ${snapshot.workout.segments.size}"
+        canvas.drawText(segInfo, x + w / 2, y + h * 0.88f, paint)
+
+        // Progress bar at bottom
+        val barH = 3f
+        paint.style = Paint.Style.FILL
+        paint.color = Color.argb(80, 0, 229, 255)
+        canvas.drawRect(x + 4f, y + h - 6f, x + w - 4f, y + h - 6f + barH, paint)
+
+        val progress = snapshot.segmentProgressPermille / 1000f
+        paint.color = COLOR_VALUE
+        canvas.drawRect(x + 4f, y + h - 6f, x + 4f + (w - 8f) * progress, y + h - 6f + barH, paint)
+    }
+
+    private fun drawCadenceField(
+        canvas: Canvas,
+        paint: Paint,
+        x: Float,
+        y: Float,
+        w: Float,
+        h: Float,
+        snapshot: RuntimeSnapshot
+    ) {
+        // Border
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = BORDER_WIDTH
+        paint.color = COLOR_BORDER
+        canvas.drawRect(x, y, x + w, y + h, paint)
+
+        val cadence = snapshot.currentCadence?.toString() ?: "---"
+
+        // Label
+        paint.style = Paint.Style.FILL
+        paint.textSize = h * 0.20f
+        paint.textAlign = Paint.Align.CENTER
+        paint.color = COLOR_LABEL
+        canvas.drawText("CAD", x + w / 2, y + h * 0.25f, paint)
+
+        // Cadence value
+        paint.textSize = h * 0.55f
+        paint.color = COLOR_VALUE
+        canvas.drawText(cadence, x + w / 2, y + h * 0.70f, paint)
+
+        // Unit
+        paint.textSize = h * 0.20f
+        paint.color = COLOR_LABEL
+        canvas.drawText("rpm", x + w / 2, y + h * 0.88f, paint)
     }
 }

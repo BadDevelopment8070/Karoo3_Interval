@@ -4,15 +4,15 @@ plugins {
 }
 
 android {
-    namespace = "com.bastiankahuna.karoosmartftp"
+    namespace = "com.bastiankahuna.karoosmartftpv2"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.bastiankahuna.karoosmartftp"
+        applicationId = "com.bastiankahuna.karoosmartftpv2"
         minSdk = 26
         targetSdk = 34
-        versionCode = 13
-        versionName = "1.1.3"
+        versionCode = 14
+        versionName = "1.1.4"
     }
 
     buildTypes {
